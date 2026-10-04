@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Al Hareem Cloth House - Admin</title>
+<style>
+:root{--green:#12403a;--gold:#c8901a;--bg:#f3f6f4;--line:#d5e0db;--ink:#16302c;--muted:#5d726d;--red:#a3261c}
+*{box-sizing:border-box;margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+button,input,select,textarea{font:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.hide{display:none!important}
+.btn{border:0;border-radius:8px;padding:10px 16px;cursor:pointer;font-weight:600;background:var(--green);color:#fff}
+.btn.gold{background:var(--gold);color:#1b1300}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.red{background:#fff;color:var(--red);border:1px solid var(--red)}
+.btn.sm{padding:7px 11px;font-size:.88rem}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+label{display:block;font-weight:600;font-size:.88rem;margin-top:10px}
+#login{min-height:100vh;display:grid;place-items:center;padding:16px}
+.box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:26px;width:min(380px,100%)}
+.box h1{font-size:1.5rem;color:var(--green)}
+header{background:var(--green);color:#fff;position:sticky;top:0;z-index:5}
+.top{max-width:1150px;margin:auto;padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.top b{font-size:1.15rem;flex:1;min-width:170px}
+.nav button{background:none;border:0;color:#cfe0db;padding:8px 12px;cursor:pointer;font-weight:600;border-radius:6px}
+.nav button.on{background:rgba(255,255,255,.16);color:#fff}
+main{max-width:1150px;margin:auto;padding:18px 16px 60px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.stat{background:#fff;border:2px solid var(--line);border-radius:12px;padding:14px;text-align:left;cursor:pointer}
+.stat.on{border-color:var(--green)}
+.stat .n{font-size:2rem;font-weight:700;color:var(--green)}
+.stat small{color:var(--muted);display:block}
+.tools{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.tools input{flex:1;min-width:200px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.pic{height:170px;background:#e6ede9 center/cover;display:grid;place-items:center;color:var(--muted);font-size:.9rem}
+.cb{padding:12px;display:flex;flex-direction:column;gap:5px;flex:1}
+.cb h3{font-size:1.02rem}.meta{color:var(--muted);font-size:.88rem}
+.price b{color:var(--green);font-size:1.1rem}.price s{color:var(--muted);margin-left:6px;font-size:.9rem}
+.tag{display:inline-block;background:#fdf1d3;color:#7a5600;border-radius:99px;padding:1px 9px;font-size:.78rem;font-weight:600}
+.tag.low{background:#fbe0dd;color:var(--red)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto;padding-top:8px}
+.acts .btn{flex:1}
+.ocard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;display:grid;gap:4px}
+.ocard .h{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700}
+.ocard select{width:auto}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+dialog{border:0;border-radius:14px;padding:20px;width:min(480px,94vw);max-height:92vh}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prev{width:100%;height:150px;object-fit:cover;border-radius:8px;margin-top:8px}
+.err{color:var(--red);font-size:.9rem;margin-top:10px;min-height:1.2em}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:11px 20px;border-radius:8px;z-index:20}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <form class="box" id="lf">
+    <h1>Al Hareem Cloth House</h1>
+    <p class="meta">Admin login</p>
+    <label>Username<input id="lu" autocomplete="username" required></label>
+    <label>Password<input id="lp" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="le" role="alert"></div>
+    <button class="btn gold" style="width:100%;margin-top:6px">Log in</button>
+  </form>
+</div>
+
+<div id="app" class="hide">
+  <header><div class="top">
+    <b>Al Hareem Cloth House</b>
+    <div class="nav"><button id="nStock" class="on">Stock</button><button id="nOrders">Orders</button></div>
+    <button class="btn ghost sm" id="out">Log out</button>
+  </div></header>
+  <main>
+    <section id="vStock">
+      <div class="stats" id="stats"></div>
+      <div class="tools">
+        <input id="sq" type="search" placeholder="Search by name, color or size" aria-label="Search cloths">
+        <button class="btn gold" id="addBtn">+ Add cloth</button>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+    <section id="vOrders" class="hide">
+      <div class="tools"><input id="oq" type="search" placeholder="Search by customer name, phone or order number" aria-label="Search orders"></div>
+      <div id="olist"></div>
+    </section>
+  </main>
+</div>
+
+<dialog id="dc"><form id="cf">
+  <h2 id="ct">Add cloth</h2>
+  <label>Section<select id="fs"><option value="men">Men</option><option value="women">Women</option><option value="kids">Kids</option></select></label>
+  <label>Cloth name<input id="fn" required></label>
+  <div class="two"><label>Color<input id="fc"></label><label>Size<input id="fz" placeholder="S, M, L or 2-4Y"></label></div>
+  <div class="two"><label>Price (Rs.)<input id="fp" type="number" min="0" required></label><label>Stock<input id="fk" type="number" min="0" value="0"></label></div>
+  <div class="two"><label>Discount<select id="dt"><option value="none">No discount</option><option value="percent">Percent (%)</option><option value="rs">Rupees (Rs.)</option></select></label>
+  <label>Discount value<input id="dv" type="number" min="0" value="0"></label></div>
+  <label>Picture<input id="fi" type="file" accept="image/*"></label>
+  <img id="pv" class="prev hide" alt="Picture preview">
+  <div class="err" id="ce" role="alert"></div>
+  <div class="acts"><button type="button" class="btn ghost" data-close="dc">Cancel</button><button class="btn">Save</button></div>
+</form></dialog>
+
+<dialog id="do"><form id="of">
+  <h2>Confirm order</h2>
+  <p id="oinfo" class="meta"></p>
+  <div class="two"><label>Quantity<input id="oqty" type="number" min="1" value="1"></label><label>Total<input id="otot" readonly></label></div>
+  <label>Customer name<input id="on" required></label>
+  <label>Phone<input id="op" type="tel" placeholder="03XX-XXXXXXX" required></label>
+  <div class="two"><label>City<input id="oc"></label><label>Address<input id="oa"></label></div>
+  <label>Payment<select id="opay"><option value="cash">Cash</option><option value="easypaisa">Easypaisa</option><option value="jazzcash">JazzCash</option><option value="nayapay">NayaPay</option></select></label>
+  <label id="tw" class="hide">Transaction ID<input id="otid"></label>
+  <div class="err" id="oe" role="alert"></div>
+  <div class="acts"><button type="button" class="btn ghost" data-close="do">Cancel</button><button class="btn gold">Confirm order</button></div>
+</form></dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rs=n=>"Rs. "+Number(n).toLocaleString("en-PK");
+const NAMES={men:"Men",women:"Women",kids:"Kids"};
+const STAT=["pending","dispatched","delivered"];
+let T=localStorage.getItem("ah_token")||"",sec="",cloths=[],editId=null,orderCloth=null;
+
+async function api(path,opt={}){
+  opt.headers={...(opt.headers||{}),"X-Token":T};
+  const r=await fetch("/api"+path,opt);
+  const d=await r.json().catch(()=>({}));
+  if(r.status===401&&T&&path!=="/login"){logout();throw new Error("Please log in again");}
+  if(!r.ok) throw new Error(typeof d.detail==="string"?d.detail:"Please check the form and try again");
+  return d;
+}
+function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
+function fdate(iso){return new Date(iso).toLocaleString("en-PK",{weekday:"long",day:"numeric",month:"long",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true});}
+function final(c){
+  if(c.discount_type==="percent") return Math.max(0,Math.round(c.price*(100-c.discount_value)/100));
+  if(c.discount_type==="rs") return Math.max(0,c.price-c.discount_value);
+  return c.price;
+}
+
+/* login */
+$("lf").onsubmit=async e=>{e.preventDefault();$("le").textContent="";
+  try{const d=await api("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("lu").value,password:$("lp").value})});
+    T=d.token;localStorage.setItem("ah_token",T);start();}catch(x){$("le").textContent=x.message;}};
+function logout(){T="";localStorage.removeItem("ah_token");$("app").classList.add("hide");$("login").classList.remove("hide");}
+$("out").onclick=logout;
+async function start(){
+  try{await api("/summary");}catch(e){return logout();}
+  $("login").classList.add("hide");$("app").classList.remove("hide");loadStock();
+}
+
+/* nav */
+function show(v){
+  $("vStock").classList.toggle("hide",v!=="stock");$("vOrders").classList.toggle("hide",v!=="orders");
+  $("nStock").classList.toggle("on",v==="stock");$("nOrders").classList.toggle("on",v==="orders");
+  v==="stock"?loadStock():loadOrders();
+}
+$("nStock").onclick=()=>show("stock");$("nOrders").onclick=()=>show("orders");
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$(b.dataset.close).close());
+
+/* stock */
+async function loadStock(){
+  const [s,list]=await Promise.all([api("/summary"),api(`/cloths?section=${sec}&search=${encodeURIComponent($("sq").value)}`)]);
+  cloths=list;
+  const all=Object.values(s).reduce((a,x)=>({n:a.n+x.n,stock:a.stock+x.stock,low:a.low+x.low}),{n:0,stock:0,low:0});
+  const box=(k,l,x)=>`<button class="stat ${sec===k?"on":""}" data-s="${k}"><small>${l}</small><span class="n">${x.n}</span><small>Total cloths &middot; ${x.stock} in stock${x.low?` &middot; ${x.low} low`:""}</small></button>`;
+  $("stats").innerHTML=box("","All cloths",all)+box("men","Men",s.men)+box("women","Women",s.women)+box("kids","Kids",s.kids);
+  $("stats").querySelectorAll(".stat").forEach(b=>b.onclick=()=>{sec=b.dataset.s;loadStock();});
+  $("grid").innerHTML=list.length?list.map(card).join(""):'<p class="empty">No cloths found. Use "Add cloth" to add one.</p>';
+  $("grid").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>act(b.dataset.a,+b.dataset.i));
+}
+function card(c){
+  const d=c.discount_type!=="none"&&c.discount_value>0;
+  const pic=c.image?`style="background-image:url('/uploads/${esc(c.image)}')"`:"";
+  return `<article class="card"><div class="pic" ${pic}>${c.image?"":"No picture"}</div><div class="cb">
+    <h3>${esc(c.name)}</h3>
+    <div class="meta">${NAMES[c.section]} &middot; ${esc(c.color||"-")} &middot; Size ${esc(c.size||"-")}</div>
+    <div class="price"><b>${rs(final(c))}</b>${d?`<s>${rs(c.price)}</s> <span class="tag">${c.discount_type==="percent"?c.discount_value+"% off":rs(c.discount_value)+" off"}</span>`:""}</div>
+    <div><span class="tag ${c.stock<5?"low":""}">${c.stock} in stock</span></div>
+    <div class="meta">Added ${fdate(c.created_at)}</div>
+    <div class="acts"><button class="btn gold sm" data-a="order" data-i="${c.id}" ${c.stock<1?"disabled":""}>Confirm order</button>
+    <button class="btn ghost sm" data-a="edit" data-i="${c.id}">Edit</button><button class="btn red sm" data-a="del" data-i="${c.id}">Delete</button></div></div></article>`;
+}
+async function act(a,id){
+  const c=cloths.find(x=>x.id===id);
+  if(a==="edit") openCloth(c);
+  if(a==="order") openOrder(c);
+  if(a==="del"&&confirm(`Delete "${c.name}"?`)){try{await api("/cloths/"+id,{method:"DELETE"});toast("Deleted");loadStock();}catch(e){alert(e.message);}}
+}
+let st;$("sq").oninput=()=>{clearTimeout(st);st=setTimeout(loadStock,250);};
+
+/* add / edit cloth */
+$("addBtn").onclick=()=>openCloth(null);
+function openCloth(c){
+  editId=c?c.id:null;$("ct").textContent=c?"Edit cloth":"Add cloth";$("ce").textContent="";$("cf").reset();
+  $("fs").value=c?c.section:(sec||"men");
+  if(c){$("fn").value=c.name;$("fc").value=c.color;$("fz").value=c.size;$("fp").value=c.price;$("fk").value=c.stock;$("dt").value=c.discount_type;$("dv").value=c.discount_value;}
+  $("pv").classList.toggle("hide",!(c&&c.image));if(c&&c.image)$("pv").src="/uploads/"+c.image;
+  $("dc").showModal();
+}
+$("fi").onchange=()=>{const f=$("fi").files[0];if(f){$("pv").src=URL.createObjectURL(f);$("pv").classList.remove("hide");}};
+$("cf").onsubmit=async e=>{e.preventDefault();
+  const fd=new FormData();
+  fd.append("section",$("fs").value);fd.append("name",$("fn").value);fd.append("color",$("fc").value);fd.append("size",$("fz").value);
+  fd.append("price",$("fp").value||0);fd.append("stock",$("fk").value||0);fd.append("discount_type",$("dt").value);fd.append("discount_value",$("dv").value||0);
+  if($("fi").files[0]) fd.append("image",$("fi").files[0]);
+  try{await api(editId?"/cloths/"+editId:"/cloths",{method:editId?"PUT":"POST",body:fd});$("dc").close();toast("Saved");loadStock();}
+  catch(x){$("ce").textContent=x.message;}};
+
+/* order */
+function calc(){$("otot").value=orderCloth?rs(final(orderCloth)*(+$("oqty").value||0)):"";}
+function openOrder(c){
+  orderCloth=c;$("of").reset();$("oe").textContent="";$("tw").classList.add("hide");
+  $("oinfo").textContent=`${c.name} (${NAMES[c.section]}, ${c.color||"-"}, size ${c.size||"-"}) - ${rs(final(c))} each, ${c.stock} in stock`;
+  $("oqty").max=c.stock;calc();$("do").showModal();
+}
+$("oqty").oninput=calc;
+$("opay").onchange=()=>$("tw").classList.toggle("hide",$("opay").value==="cash");
+$("of").onsubmit=async e=>{e.preventDefault();
+  try{await api("/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    cloth_id:orderCloth.id,qty:+$("oqty").value,name:$("on").value,phone:$("op").value,city:$("oc").value,address:$("oa").value,pay_method:$("opay").value,tid:$("otid").value})});
+    $("do").close();toast("Order confirmed and saved");loadStock();}
+  catch(x){$("oe").textContent=x.message;}};
+
+/* orders list */
+async function loadOrders(){
+  const list=await api("/orders?search="+encodeURIComponent($("oq").value));
+  $("olist").innerHTML=list.length?list.map(o=>`<div class="ocard">
+    <div class="h"><span>Order #${o.id}</span><span>${rs(o.total)}</span></div>
+    <div>${esc(o.cloth)} (${NAMES[o.section]}, ${esc(o.color||"-")}, size ${esc(o.size||"-")}) &times; ${o.qty} at ${rs(o.unit_price)}</div>
+    <div>${esc(o.customer)} &middot; ${esc(o.phone)} &middot; ${esc(o.city)} ${esc(o.address)}</div>
+    <div class="meta">Payment: ${esc(o.pay_method)}${o.tid?" (ID "+esc(o.tid)+")":""}</div>
+    <div class="meta">${fdate(o.created_at)}</div>
+    <div><select data-o="${o.id}" aria-label="Order status">${STAT.map(s=>`<option ${s===o.status?"selected":""}>${s}</option>`).join("")}</select></div></div>`).join("")
+    :'<p class="empty">No orders yet.</p>';
+  $("olist").querySelectorAll("select").forEach(s=>s.onchange=async()=>{
+    try{await api(`/orders/${s.dataset.o}/status?status=${s.value}`,{method:"PUT"});toast("Status updated");}catch(e){alert(e.message);}});
+}
+let ot;$("oq").oninput=()=>{clearTimeout(ot);ot=setTimeout(loadOrders,250);};
+
+if(T) start();
+</script>
+</body>
+</html>
