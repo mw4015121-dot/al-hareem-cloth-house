@@ -2,17 +2,28 @@
 
 A web application for Al Hareem Cloth House management and catalog.
 
+🌐 **Live Demo Website:** [https://occurs-exact-puzzles-scheduled.trycloudflare.com](https://occurs-exact-puzzles-scheduled.trycloudflare.com)
+
+---
+
+## 🔑 Admin Login Credentials
+- **Username:** `admin`
+- **Password:** `1234`
+
+---
+
 ## 🚀 Features
 - Product catalog & inventory browsing
 - Order and customer management
 - Fast and responsive web interface
+- Dual database support (MySQL / SQLite)
 
 ## 🛠️ Tech Stack
-- **Backend:** Python / FastAPI / Flask
+- **Backend:** Python / FastAPI
 - **Frontend:** HTML, CSS, JavaScript
-- **Database:** SQLite / SQL schema
+- **Database:** SQLite / MySQL
 
-## 📦 Getting Started
+## 📦 Getting Started Locally
 
 ### Prerequisites
 Make sure you have Python installed:
@@ -36,3 +47,4 @@ python --version
    ```bash
    python main.py
    ```
+   Open [http://localhost:8000](http://localhost:8000) in your browser.
