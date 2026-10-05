@@ -2,7 +2,7 @@
 
 A web application for Al Hareem Cloth House management and catalog.
 
-🌐 **Live Demo Website:** [https://occurs-exact-puzzles-scheduled.trycloudflare.com](https://occurs-exact-puzzles-scheduled.trycloudflare.com)
+🌐 **Live Demo Website:** [https://committed-derby-bent-longitude.trycloudflare.com](https://committed-derby-bent-longitude.trycloudflare.com)
 
 ---
 
