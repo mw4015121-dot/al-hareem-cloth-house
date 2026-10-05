@@ -121,9 +121,9 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const rs=n=>"Rs. "+Number(n).toLocaleString("en-PK");
 const NAMES={men:"Men",women:"Women",kids:"Kids"};
-const STAT=["pending","dispatched","delivered"];
-const API_BASE=(window.location.protocol==="file:"||!window.location.port||window.location.port!=="8000")?"http://127.0.0.1:8000":"";
-let T=localStorage.getItem("ah_token")||"",sec="",cloths=[],editId=null,orderCloth=null;
+const API_BASE = (window.location.protocol === "file:") ? "http://127.0.0.1:8000" : "";
+const STAT = ["pending", "dispatched", "delivered"];
+let T = localStorage.getItem("ah_token") || "", sec = "", cloths = [], editId = null, orderCloth = null;
 
 async function api(path,opt={}){
   opt.headers={...(opt.headers||{}),"X-Token":T};
