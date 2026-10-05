@@ -1,18 +1,32 @@
-import os, secrets, hashlib, uuid
+import os, secrets, hashlib, uuid, sqlite3
 from datetime import datetime, timedelta
-import mysql.connector
 from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-# Change the MySQL password here (or set the DB_PASSWORD environment variable)
-DB = dict(host="localhost", user="root", password=os.getenv("DB_PASSWORD", "1234"), database="alhareem")
 SEC = ("men", "women", "kids")
 PAY = ("cash", "easypaisa", "jazzcash", "nayapay")
 STATUS = ("pending", "dispatched", "delivered")
 TOK = set()
+SQLITE_FILE = "alhareem.db"
+
+# Detect DB Backend
+DB_TYPE = "sqlite"
+try:
+    import mysql.connector
+    _c = mysql.connector.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        user=os.getenv("DB_USER", "root"),
+        password=os.getenv("DB_PASSWORD", "1234"),
+        database=os.getenv("DB_NAME", "alhareem")
+    )
+    _c.close()
+    DB_TYPE = "mysql"
+except Exception:
+    DB_TYPE = "sqlite"
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
@@ -29,20 +43,100 @@ def now():  # Pakistan time (UTC+5)
     return datetime.utcnow() + timedelta(hours=5)
 
 
+def init_sqlite_db():
+    conn = sqlite3.connect(SQLITE_FILE)
+    cur = conn.cursor()
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS admin (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL
+    );
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS cloths (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      section TEXT NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT DEFAULT '',
+      size TEXT DEFAULT '',
+      price INTEGER NOT NULL,
+      discount_type TEXT DEFAULT 'none',
+      discount_value INTEGER DEFAULT 0,
+      stock INTEGER DEFAULT 0,
+      image TEXT,
+      created_at TEXT NOT NULL
+    );
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      city TEXT DEFAULT '',
+      address TEXT DEFAULT ''
+    );
+    """)
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      cloth_id INTEGER NOT NULL,
+      customer_id INTEGER NOT NULL,
+      qty INTEGER NOT NULL,
+      unit_price INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      pay_method TEXT NOT NULL,
+      tid TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (cloth_id) REFERENCES cloths(id),
+      FOREIGN KEY (customer_id) REFERENCES customers(id)
+    );
+    """)
+    conn.commit()
+    conn.close()
+
+
 def q(sql, args=(), one=False, write=False):
-    c = mysql.connector.connect(**DB)
-    cur = c.cursor(dictionary=True)
-    try:
-        cur.execute(sql, args)
-        if write:
-            c.commit()
-            return cur.lastrowid
-        return cur.fetchone() if one else cur.fetchall()
-    except mysql.connector.Error as e:
-        raise HTTPException(400, "Database error: " + str(e.msg))
-    finally:
-        cur.close()
-        c.close()
+    if DB_TYPE == "mysql":
+        import mysql.connector
+        c = mysql.connector.connect(
+            host=os.getenv("DB_HOST", "localhost"),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", "1234"),
+            database=os.getenv("DB_NAME", "alhareem")
+        )
+        cur = c.cursor(dictionary=True)
+        try:
+            cur.execute(sql, args)
+            if write:
+                c.commit()
+                return cur.lastrowid
+            return cur.fetchone() if one else cur.fetchall()
+        except mysql.connector.Error as e:
+            raise HTTPException(400, "Database error: " + str(e.msg))
+        finally:
+            cur.close()
+            c.close()
+    else:
+        conn = sqlite3.connect(SQLITE_FILE)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        sqlite_sql = sql.replace("%s", "?")
+        try:
+            cur.execute(sqlite_sql, tuple(args))
+            if write:
+                conn.commit()
+                return cur.lastrowid
+            rows = cur.fetchall()
+            if one:
+                return dict(rows[0]) if rows else None
+            return [dict(r) for r in rows]
+        except sqlite3.Error as e:
+            raise HTTPException(400, "Database error: " + str(e))
+        finally:
+            cur.close()
+            conn.close()
 
 
 def hp(p, salt=None):
@@ -77,6 +171,8 @@ def save_img(f):
 
 @app.on_event("startup")
 def init():
+    if DB_TYPE == "sqlite":
+        init_sqlite_db()
     if not q("SELECT id FROM admin LIMIT 1", one=True):
         q("INSERT INTO admin(username,password_hash) VALUES(%s,%s)",
           ("admin", hp(os.getenv("ADMIN_PASSWORD", "1234"))), write=True)
@@ -99,7 +195,7 @@ def login(d: Login):
 
 @app.get("/api/summary", dependencies=[Depends(auth)])
 def summary():
-    rows = q("SELECT section, COUNT(*) n, COALESCE(SUM(stock),0) stock, COALESCE(SUM(stock<5),0) low FROM cloths GROUP BY section")
+    rows = q("SELECT section, COUNT(*) n, COALESCE(SUM(stock),0) stock, COALESCE(SUM(CASE WHEN stock<5 THEN 1 ELSE 0 END),0) low FROM cloths GROUP BY section")
     out = {s: {"n": 0, "stock": 0, "low": 0} for s in SEC}
     for r in rows:
         out[r["section"]] = {"n": int(r["n"]), "stock": int(r["stock"]), "low": int(r["low"])}
@@ -126,7 +222,7 @@ def add_cloth(section: str = Form(...), name: str = Form(...), color: str = Form
         raise HTTPException(400, "Choose Men, Women or Kids")
     q("INSERT INTO cloths(section,name,color,size,price,discount_type,discount_value,stock,image,created_at) "
       "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-      (section, name.strip(), color.strip(), size.strip(), price, discount_type, discount_value, stock, save_img(image), now()), write=True)
+      (section, name.strip(), color.strip(), size.strip(), price, discount_type, discount_value, stock, save_img(image), str(now())), write=True)
     return {"ok": True}
 
 
@@ -185,7 +281,7 @@ def place_order(o: Order):
     up = final_price(c)
     oid = q("INSERT INTO orders(cloth_id,customer_id,qty,unit_price,total,pay_method,tid,status,created_at) "
             "VALUES(%s,%s,%s,%s,%s,%s,%s,'pending',%s)",
-            (c["id"], cust, o.qty, up, up * o.qty, o.pay_method, o.tid.strip(), now()), write=True)
+            (c["id"], cust, o.qty, up, up * o.qty, o.pay_method, o.tid.strip(), str(now())), write=True)
     q("UPDATE cloths SET stock=stock-%s WHERE id=%s", (o.qty, c["id"]), write=True)
     return {"order_id": oid}
 
@@ -209,3 +305,9 @@ def order_status(oid: int, status: str):
 @app.get("/")
 def home():
     return FileResponse("index.html")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
