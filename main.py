@@ -2,6 +2,7 @@ import os, secrets, hashlib, uuid
 from datetime import datetime, timedelta
 import mysql.connector
 from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -13,6 +14,13 @@ PAY = ("cash", "easypaisa", "jazzcash", "nayapay")
 STATUS = ("pending", "dispatched", "delivered")
 TOK = set()
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 os.makedirs("uploads", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 

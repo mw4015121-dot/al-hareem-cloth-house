@@ -122,14 +122,20 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const rs=n=>"Rs. "+Number(n).toLocaleString("en-PK");
 const NAMES={men:"Men",women:"Women",kids:"Kids"};
 const STAT=["pending","dispatched","delivered"];
+const API_BASE=(window.location.protocol==="file:"||!window.location.port||window.location.port!=="8000")?"http://127.0.0.1:8000":"";
 let T=localStorage.getItem("ah_token")||"",sec="",cloths=[],editId=null,orderCloth=null;
 
 async function api(path,opt={}){
   opt.headers={...(opt.headers||{}),"X-Token":T};
-  const r=await fetch("/api"+path,opt);
+  let r;
+  try {
+    r = await fetch(API_BASE+"/api"+path,opt);
+  } catch(e) {
+    throw new Error("Cannot connect to server. Please make sure the Python server is running.");
+  }
   const d=await r.json().catch(()=>({}));
   if(r.status===401&&T&&path!=="/login"){logout();throw new Error("Please log in again");}
-  if(!r.ok) throw new Error(typeof d.detail==="string"?d.detail:"Please check the form and try again");
+  if(!r.ok) throw new Error(typeof d.detail==="string"?d.detail:"Wrong username or password");
   return d;
 }
 function toast(m){const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2200);}
@@ -173,7 +179,7 @@ async function loadStock(){
 }
 function card(c){
   const d=c.discount_type!=="none"&&c.discount_value>0;
-  const pic=c.image?`style="background-image:url('/uploads/${esc(c.image)}')"`:"";
+  const pic=c.image?`style="background-image:url('${API_BASE}/uploads/${esc(c.image)}')"`:"";
   return `<article class="card"><div class="pic" ${pic}>${c.image?"":"No picture"}</div><div class="cb">
     <h3>${esc(c.name)}</h3>
     <div class="meta">${NAMES[c.section]} &middot; ${esc(c.color||"-")} &middot; Size ${esc(c.size||"-")}</div>
@@ -197,7 +203,7 @@ function openCloth(c){
   editId=c?c.id:null;$("ct").textContent=c?"Edit cloth":"Add cloth";$("ce").textContent="";$("cf").reset();
   $("fs").value=c?c.section:(sec||"men");
   if(c){$("fn").value=c.name;$("fc").value=c.color;$("fz").value=c.size;$("fp").value=c.price;$("fk").value=c.stock;$("dt").value=c.discount_type;$("dv").value=c.discount_value;}
-  $("pv").classList.toggle("hide",!(c&&c.image));if(c&&c.image)$("pv").src="/uploads/"+c.image;
+  $("pv").classList.toggle("hide",!(c&&c.image));if(c&&c.image)$("pv").src=API_BASE+"/uploads/"+c.image;
   $("dc").showModal();
 }
 $("fi").onchange=()=>{const f=$("fi").files[0];if(f){$("pv").src=URL.createObjectURL(f);$("pv").classList.remove("hide");}};
